@@ -12,6 +12,11 @@ export class AIChat {
   private messages: ChatMessage[] = [];
   private isLoading: boolean = false;
 
+  // Usage Limit System
+  private readonly DAILY_LIMIT: number = 2;
+  private readonly RESET_CODE: string = import.meta.env.VITE_AI_RESET_CODE || "NIHONGO2024";
+  private readonly STORAGE_KEY: string = "ai_usage_data";
+
   // DOM Elements
   private toggleBtn!: HTMLButtonElement;
   private container!: HTMLDivElement;
@@ -20,6 +25,7 @@ export class AIChat {
   private sendBtn!: HTMLButtonElement;
   private closeBtn!: HTMLButtonElement;
   private contextKanji!: HTMLSpanElement;
+  private usageDisplay!: HTMLDivElement;
 
   constructor(flashcardApp: { flashcards: Flashcard[]; currentIndex: number }) {
     this.flashcardApp = flashcardApp;
@@ -56,8 +62,11 @@ export class AIChat {
           <span class="chat-ai-icon">🤖</span>
           <div>
             <h3>AI Sensei</h3>
-            <span class="chat-status">Online - GPT-4o Mini</span>
+            <span class="chat-status">GPT-4o Mini</span>
           </div>
+        </div>
+        <div class="usage-display" id="usageDisplay">
+          <span class="usage-count">${this.DAILY_LIMIT}/${this.DAILY_LIMIT}</span>
         </div>
         <button class="chat-close-btn" id="chatCloseBtn">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -70,12 +79,16 @@ export class AIChat {
         <div class="chat-welcome">
           <div class="welcome-icon">🎌</div>
           <h4>Selamat Datang!</h4>
-          <p>Tanyakan apapun tentang kanji yang sedang kamu pelajari. Contoh:</p>
+          <p>Tanyakan apapun tentang kanji yang sedang kamu pelajari.</p>
           <div class="quick-prompts">
             <button class="quick-prompt" data-prompt="contoh kalimat">📝 Contoh Kalimat</button>
             <button class="quick-prompt" data-prompt="contoh soal N3">📚 Soal JLPT N3</button>
             <button class="quick-prompt" data-prompt="kata turunan">🔤 Kata Turunan</button>
             <button class="quick-prompt" data-prompt="cara mengingat">🧠 Tips Menghafal</button>
+          </div>
+          <div class="reset-code-section">
+            <input type="text" class="reset-code-input" id="resetCodeInput" placeholder="Masukkan kode reset..." />
+            <button class="reset-code-btn" id="resetCodeBtn">🔓 Reset</button>
           </div>
         </div>
       </div>
@@ -110,6 +123,10 @@ export class AIChat {
     this.sendBtn = document.getElementById("chatSendBtn") as HTMLButtonElement;
     this.closeBtn = document.getElementById("chatCloseBtn") as HTMLButtonElement;
     this.contextKanji = document.getElementById("contextKanji") as HTMLSpanElement;
+    this.usageDisplay = document.getElementById("usageDisplay") as HTMLDivElement;
+
+    // Update usage display on init
+    this.updateUsageDisplay();
   }
 
   private bindEvents(): void {
@@ -141,6 +158,20 @@ export class AIChat {
         }
       });
     });
+
+    // Reset code button
+    const resetCodeBtn = document.getElementById("resetCodeBtn");
+    const resetCodeInput = document.getElementById("resetCodeInput") as HTMLInputElement;
+    
+    resetCodeBtn?.addEventListener("click", () => {
+      this.handleResetCode(resetCodeInput?.value || "");
+    });
+
+    resetCodeInput?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        this.handleResetCode(resetCodeInput.value);
+      }
+    });
   }
 
   private toggle(): void {
@@ -164,6 +195,85 @@ export class AIChat {
     const currentCard = this.flashcardApp.flashcards[this.flashcardApp.currentIndex];
     if (currentCard) {
       this.contextKanji.textContent = currentCard.kanji;
+    }
+  }
+
+  // Usage Limit Methods
+  private getUsageData(): { count: number; date: string } {
+    const data = localStorage.getItem(this.STORAGE_KEY);
+    if (data) {
+      return JSON.parse(data);
+    }
+    return { count: 0, date: new Date().toDateString() };
+  }
+
+  private saveUsageData(count: number): void {
+    const data = {
+      count,
+      date: new Date().toDateString(),
+    };
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+  }
+
+  private getRemainingUses(): number {
+    const data = this.getUsageData();
+    const today = new Date().toDateString();
+    
+    // Reset if new day
+    if (data.date !== today) {
+      this.saveUsageData(0);
+      return this.DAILY_LIMIT;
+    }
+    
+    return Math.max(0, this.DAILY_LIMIT - data.count);
+  }
+
+  private incrementUsage(): void {
+    const data = this.getUsageData();
+    const today = new Date().toDateString();
+    
+    if (data.date !== today) {
+      this.saveUsageData(1);
+    } else {
+      this.saveUsageData(data.count + 1);
+    }
+    this.updateUsageDisplay();
+  }
+
+  private updateUsageDisplay(): void {
+    const remaining = this.getRemainingUses();
+    const usageCount = this.usageDisplay?.querySelector(".usage-count");
+    if (usageCount) {
+      usageCount.textContent = `${remaining}/${this.DAILY_LIMIT}`;
+      
+      // Change color based on remaining
+      if (remaining === 0) {
+        this.usageDisplay.classList.add("exhausted");
+        this.usageDisplay.classList.remove("low");
+      } else if (remaining <= 3) {
+        this.usageDisplay.classList.add("low");
+        this.usageDisplay.classList.remove("exhausted");
+      } else {
+        this.usageDisplay.classList.remove("low", "exhausted");
+      }
+    }
+  }
+
+  private handleResetCode(code: string): void {
+    const resetInput = document.getElementById("resetCodeInput") as HTMLInputElement;
+    
+    if (code.trim().toUpperCase() === this.RESET_CODE) {
+      this.saveUsageData(0);
+      this.updateUsageDisplay();
+      this.addMessage("assistant", "✅ Kode berhasil! Limit AI telah di-reset. Kamu memiliki " + this.DAILY_LIMIT + " penggunaan lagi.");
+      if (resetInput) resetInput.value = "";
+      
+      // Hide welcome after reset message
+      const welcomeEl = this.messagesEl.querySelector(".chat-welcome") as HTMLElement;
+      if (welcomeEl) welcomeEl.style.display = "none";
+    } else if (code.trim() !== "") {
+      alert("Kode tidak valid!");
+      if (resetInput) resetInput.value = "";
     }
   }
 
@@ -195,6 +305,16 @@ export class AIChat {
   private async sendMessage(): Promise<void> {
     const userMessage = this.inputEl.value.trim();
     if (!userMessage || this.isLoading) return;
+
+    // Check usage limit
+    if (this.getRemainingUses() <= 0) {
+      // Hide welcome and show chat
+      const welcomeEl = this.messagesEl.querySelector(".chat-welcome") as HTMLElement;
+      if (welcomeEl) welcomeEl.style.display = "none";
+      
+      this.addMessage("error", "⚠️ Limit harian tercapai! Kamu sudah menggunakan " + this.DAILY_LIMIT + " kali hari ini. Masukkan kode reset untuk melanjutkan, atau tunggu hingga besok.");
+      return;
+    }
 
     // Clear input
     this.inputEl.value = "";
@@ -237,6 +357,9 @@ export class AIChat {
         role: "assistant",
         content: response,
       });
+
+      // Increment usage after successful response
+      this.incrementUsage();
     } catch (error) {
       loadingEl.remove();
       this.addMessage("error", "Maaf, terjadi kesalahan. Silakan coba lagi.");
