@@ -13,7 +13,7 @@ export class AIChat {
   private isLoading: boolean = false;
 
   // Usage Limit System
-  private readonly DAILY_LIMIT: number = 2;
+  private readonly DAILY_LIMIT: number = 10;
   private readonly RESET_CODE: string = import.meta.env.VITE_AI_RESET_CODE || "NIHONGO2024";
   private readonly STORAGE_KEY: string = "ai_usage_data";
 
