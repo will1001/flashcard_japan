@@ -11,6 +11,7 @@
   "devDependencies": {
     "typescript": "~5.9.3",
     "vite": "^7.2.4",
+    "vite-plugin-pwa": "^1.2.0",
     "wanakana": "^5.3.1"
   },
   "dependencies": {
