@@ -643,9 +643,9 @@ class FlashcardApp {
 
     // Reset romaji toggle state
     const romajiToggleBtn = document.getElementById("romajiToggleBtn");
-    romajiToggleBtn!.textContent = "💡 Tampilkan Romaji";
+    romajiToggleBtn!.textContent = "🔒 Sembunyikan Romaji";
     // We'll use a data attribute to track state since we removed the text element
-    romajiToggleBtn!.dataset.visible = "false";
+    romajiToggleBtn!.dataset.visible = "true";
 
     // Clear and add options
     quizOptions!.innerHTML = "";
@@ -656,10 +656,10 @@ class FlashcardApp {
       btn.className = "quiz-option-btn";
       
       if (showRomaji && question.optionsRomaji) {
-        // Create option with furigana and romaji (hidden initially)
+        // Create option with furigana and romaji (visible by default now)
         btn.innerHTML = `
           <span class="option-furigana">${option}</span>
-          <span class="option-romaji" style="display: none;">(${question.optionsRomaji[index]})</span>
+          <span class="option-romaji" style="display: inline;">(${question.optionsRomaji[index]})</span>
         `;
       } else {
         btn.textContent = option;
