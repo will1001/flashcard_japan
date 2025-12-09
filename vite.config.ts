@@ -1,8 +1,52 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Custom plugin to handle saving flashcards to JSON
+function flashcardApiPlugin() {
+  return {
+    name: 'flashcard-api',
+    configureServer(server: any) {
+      server.middlewares.use('/api/flashcards', async (req: any, res: any, next: any) => {
+        if (req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk.toString(); });
+          req.on('end', () => {
+            try {
+              const flashcard = JSON.parse(body);
+              const filePath = path.resolve(__dirname, 'public/flashcards.json');
+              
+              // Read existing data
+              const existingData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+              
+              // Add new flashcard
+              existingData.flashcards.push(flashcard);
+              
+              // Write back to file
+              fs.writeFileSync(filePath, JSON.stringify(existingData, null, 2));
+              
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: true, id: flashcard.id }));
+            } catch (error) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: false, error: String(error) }));
+            }
+          });
+        } else {
+          next();
+        }
+      });
+    }
+  };
+}
 
 export default defineConfig({
   plugins: [
+    flashcardApiPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'robots.txt', 'apple-touch-icon.png'],

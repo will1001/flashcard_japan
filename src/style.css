@@ -1116,3 +1116,708 @@ kbd {
     height: 56px;
   }
 }
+
+/* ========================================
+   Add Flashcard Feature
+   ======================================== */
+
+/* Add Flashcard Button */
+.add-flashcard-btn {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background: var(--gradient-accent);
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+  transition: all var(--transition-normal);
+  z-index: 1000;
+}
+
+.add-flashcard-btn:hover {
+  transform: scale(1.1);
+  box-shadow: var(--shadow-lg), 0 0 60px var(--accent-glow);
+}
+
+.add-flashcard-btn:active {
+  transform: scale(0.95);
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-normal);
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Modal Content */
+.modal-content {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  transform: translateY(20px) scale(0.95);
+  transition: all var(--transition-normal);
+}
+
+.modal-overlay.open .modal-content {
+  transform: translateY(0) scale(1);
+}
+
+/* Modal Header */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.modal-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+/* Modal Body */
+.modal-body {
+  padding: var(--spacing-md);
+}
+
+.input-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.input-group label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: var(--spacing-xs);
+  color: var(--text-primary);
+}
+
+.input-group small {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: var(--spacing-xs);
+}
+
+.kanji-input {
+  width: 100%;
+  padding: var(--spacing-sm);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  font-family: 'Noto Sans JP', sans-serif;
+  text-align: center;
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.kanji-input::placeholder {
+  color: var(--text-muted);
+}
+
+.kanji-input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.2);
+}
+
+/* Generate Button */
+.generate-btn {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--gradient-accent);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.generate-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px var(--accent-glow);
+}
+
+.generate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+}
+
+.loading-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Preview Section */
+.preview-section {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px dashed var(--border-color);
+}
+
+.preview-section h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+}
+
+.preview-card {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
+}
+
+.preview-row {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.preview-row:last-child {
+  border-bottom: none;
+}
+
+.preview-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.preview-value {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-family: 'Noto Sans JP', sans-serif;
+}
+
+/* Save Button */
+.save-btn {
+  width: 100%;
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-md);
+  color: #10b981;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.save-btn:hover {
+  background: rgba(16, 185, 129, 0.3);
+  border-color: #10b981;
+  transform: translateY(-2px);
+}
+
+/* Mobile responsive for add button */
+@media (max-width: 768px) {
+  .add-flashcard-btn {
+    bottom: 100px;
+    left: 16px;
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* ========================================
+   Level Filter Dropdown
+   ======================================== */
+.level-filter {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-right: 0.75rem;
+}
+
+.level-filter:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.level-filter:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.level-filter option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* ========================================
+   Quiz Button
+   ======================================== */
+.quiz-btn {
+  position: fixed;
+  bottom: 24px;
+  left: 90px;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+  transition: all var(--transition-fast);
+  z-index: 100;
+}
+
+.quiz-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 30px rgba(99, 102, 241, 0.6);
+}
+
+.quiz-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+@media (max-width: 768px) {
+  .quiz-btn {
+    bottom: 100px;
+    left: 80px;
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* ========================================
+   Quiz Modal
+   ======================================== */
+.quiz-modal {
+  max-width: 500px;
+  text-align: center;
+  position: relative;
+}
+
+.quiz-modal h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+}
+
+/* Quiz Modal Close Button */
+.quiz-modal .modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 300;
+  line-height: 1;
+  transition: all var(--transition-fast);
+  z-index: 10;
+}
+
+.quiz-modal .modal-close:hover {
+  background: rgba(233, 69, 96, 0.2);
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  transform: rotate(90deg);
+}
+
+/* Quiz Option Groups */
+.quiz-option-group {
+  margin-bottom: 1.5rem;
+}
+
+.quiz-option-group label {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.quiz-level-options,
+.quiz-count-options,
+.quiz-mode-options {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.quiz-level-btn,
+.quiz-count-btn,
+.quiz-mode-btn {
+  padding: 0.6rem 1.2rem;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.quiz-level-btn:hover,
+.quiz-count-btn:hover,
+.quiz-mode-btn:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.quiz-level-btn.active,
+.quiz-count-btn.active,
+.quiz-mode-btn.active {
+  background: var(--gradient-accent);
+  border-color: transparent;
+  color: white;
+}
+
+.start-quiz-btn {
+  width: 100%;
+  padding: 1rem;
+  margin-top: 1rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--gradient-accent);
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.start-quiz-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+}
+
+/* ========================================
+   Quiz Question Screen
+   ======================================== */
+.quiz-progress {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.quiz-progress-bar {
+  height: 6px;
+  background: var(--bg-glass);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.quiz-progress-fill {
+  height: 100%;
+  background: var(--gradient-accent);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+.quiz-card {
+  background: var(--gradient-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.quiz-kanji {
+  font-family: var(--font-japanese);
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.quiz-furigana {
+  font-family: var(--font-japanese);
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+}
+
+/* Romaji Hint Toggle */
+.quiz-romaji-hint {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.romaji-toggle-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.romaji-toggle-btn:hover {
+  border-color: var(--accent-secondary);
+  color: var(--accent-secondary);
+  background: rgba(168, 85, 247, 0.1);
+}
+
+/* Option Romaji */
+.option-furigana {
+  font-family: var(--font-japanese);
+}
+
+.option-romaji {
+  margin-left: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+/* Meaning Feedback (Reading Mode) */
+.quiz-meaning-feedback {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(233, 69, 96, 0.1);
+  border: 1px solid rgba(233, 69, 96, 0.2);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 500;
+  text-align: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.quiz-option-btn {
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.quiz-option-btn:hover:not(.disabled) {
+  border-color: var(--accent-primary);
+  background: rgba(233, 69, 96, 0.1);
+}
+
+.quiz-option-btn.correct {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.quiz-option-btn.wrong {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.quiz-option-btn.disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.next-question-btn {
+  width: 100%;
+  padding: 1rem;
+  margin-top: 1rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.next-question-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+}
+
+/* ========================================
+   Quiz Results Screen
+   ======================================== */
+.results-header h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+}
+
+.results-score {
+  margin-bottom: 2rem;
+}
+
+.score-circle {
+  width: 150px;
+  height: 150px;
+  border-radius: var(--radius-full);
+  background: var(--gradient-card);
+  border: 4px solid var(--accent-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  box-shadow: 0 0 30px var(--accent-glow);
+}
+
+.score-number {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  line-height: 1;
+}
+
+.score-percent {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+}
+
+.results-stats {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-item .stat-value {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.stat-item .stat-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.stat-item.correct .stat-value {
+  color: #10b981;
+}
+
+.stat-item.wrong .stat-value {
+  color: #ef4444;
+}
+
+.restart-quiz-btn {
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--gradient-accent);
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.restart-quiz-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+}

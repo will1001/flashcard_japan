@@ -6,6 +6,7 @@ export interface Flashcard {
   meaning: string;
   meaning_id?: string;
   romaji: string;
+  level?: 'N5' | 'N4' | 'N3';
 }
 
 export interface FlashcardData {

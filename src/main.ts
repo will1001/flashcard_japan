@@ -1,14 +1,26 @@
 import "./style.css";
 import type { Flashcard, FlashcardData } from "./types";
 import { AIChat } from "./ai-chat";
+import { FlashcardManager } from "./flashcard-manager";
+import { Quiz, type QuizLevel, type QuizMode, type QuizQuestion } from "./quiz";
 
 class FlashcardApp {
   public flashcards: Flashcard[] = [];
+  private allFlashcards: Flashcard[] = []; // Store all flashcards before filtering
   public currentIndex: number = 0;
   private isFlipped: boolean = false;
   private isShuffled: boolean = false;
   private originalOrder: Flashcard[] = [];
   private aiChat: AIChat | null = null;
+  private flashcardManager: FlashcardManager | null = null;
+  private pendingFlashcard: Omit<Flashcard, "id"> | null = null;
+  private currentLevel: string = "ALL";
+  
+  // Quiz
+  private quiz: Quiz | null = null;
+  private selectedQuizLevel: QuizLevel = "ALL";
+  private selectedQuizCount: number = 20;
+  private selectedQuizMode: QuizMode = "meaning";
 
   // DOM Elements
   private flashcardEl!: HTMLDivElement;
@@ -44,6 +56,11 @@ class FlashcardApp {
       this.updateDisplay();
       this.initSpeech();
       this.aiChat = new AIChat(this);
+      this.flashcardManager = new FlashcardManager();
+      this.quiz = new Quiz(this.allFlashcards);
+      this.bindAddFlashcardEvents();
+      this.bindLevelFilter();
+      this.bindQuizEvents();
     } catch (error) {
       console.error("Error initializing app:", error);
       this.showError("Gagal memuat data flashcard");
@@ -56,7 +73,8 @@ class FlashcardApp {
       throw new Error("Failed to load flashcards");
     }
     const data: FlashcardData = await response.json();
-    this.flashcards = data.flashcards;
+    this.allFlashcards = data.flashcards;
+    this.flashcards = [...this.allFlashcards];
     this.originalOrder = [...this.flashcards];
   }
 
@@ -328,6 +346,404 @@ class FlashcardApp {
     `;
     errorDiv.textContent = message;
     document.body.appendChild(errorDiv);
+  }
+
+
+  // Bind add flashcard modal events
+  private bindAddFlashcardEvents(): void {
+    const addBtn = document.getElementById("addFlashcardBtn");
+    const modal = document.getElementById("addFlashcardModal");
+    const closeBtn = document.getElementById("modalCloseBtn");
+    const generateBtn = document.getElementById("generateBtn");
+    const saveBtn = document.getElementById("saveFlashcardBtn");
+    const kanjiInput = document.getElementById("kanjiInput") as HTMLInputElement;
+
+    // Open modal
+    addBtn?.addEventListener("click", () => {
+      modal?.classList.add("open");
+      kanjiInput?.focus();
+    });
+
+    // Close modal
+    closeBtn?.addEventListener("click", () => this.closeAddModal());
+    modal?.addEventListener("click", (e) => {
+      if (e.target === modal) this.closeAddModal();
+    });
+
+    // Generate flashcard data
+    generateBtn?.addEventListener("click", () => this.generateFlashcard());
+
+    // Enter key to generate
+    kanjiInput?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") this.generateFlashcard();
+    });
+
+    // Save flashcard
+    saveBtn?.addEventListener("click", () => this.saveFlashcard());
+  }
+
+  private closeAddModal(): void {
+    const modal = document.getElementById("addFlashcardModal");
+    const previewSection = document.getElementById("previewSection");
+    const kanjiInput = document.getElementById("kanjiInput") as HTMLInputElement;
+    
+    modal?.classList.remove("open");
+    if (previewSection) previewSection.style.display = "none";
+    if (kanjiInput) kanjiInput.value = "";
+    this.pendingFlashcard = null;
+  }
+
+  private async generateFlashcard(): Promise<void> {
+    const kanjiInput = document.getElementById("kanjiInput") as HTMLInputElement;
+    const generateBtn = document.getElementById("generateBtn") as HTMLButtonElement;
+    const btnText = generateBtn?.querySelector(".btn-text") as HTMLElement;
+    const btnLoading = generateBtn?.querySelector(".btn-loading") as HTMLElement;
+    const previewSection = document.getElementById("previewSection");
+
+    const kanji = kanjiInput?.value.trim();
+    if (!kanji || !this.flashcardManager) return;
+
+    // Show loading state
+    generateBtn.disabled = true;
+    if (btnText) btnText.style.display = "none";
+    if (btnLoading) btnLoading.style.display = "flex";
+
+    try {
+      const data = await this.flashcardManager.generateFlashcardData(kanji);
+
+      if (data) {
+        this.pendingFlashcard = data;
+
+        // Update preview
+        const previewKanji = document.getElementById("previewKanji");
+        const previewFurigana = document.getElementById("previewFurigana");
+        const previewRomaji = document.getElementById("previewRomaji");
+        const previewMeaning = document.getElementById("previewMeaning");
+        const previewMeaningId = document.getElementById("previewMeaningId");
+
+        if (previewKanji) previewKanji.textContent = data.kanji;
+        if (previewFurigana) previewFurigana.textContent = data.furigana;
+        if (previewRomaji) previewRomaji.textContent = data.romaji;
+        if (previewMeaning) previewMeaning.textContent = data.meaning;
+        if (previewMeaningId) previewMeaningId.textContent = data.meaning_id || "-";
+
+        // Show preview section
+        if (previewSection) previewSection.style.display = "block";
+      } else {
+        alert("Gagal generate data. Pastikan input valid.");
+      }
+    } catch (error) {
+      console.error("Error generating flashcard:", error);
+      alert("Terjadi kesalahan saat generate.");
+    } finally {
+      // Reset button state
+      generateBtn.disabled = false;
+      if (btnText) btnText.style.display = "inline";
+      if (btnLoading) btnLoading.style.display = "none";
+    }
+  }
+
+  private async saveFlashcard(): Promise<void> {
+    if (!this.pendingFlashcard || !this.flashcardManager) return;
+
+    const newFlashcard: Flashcard = {
+      id: this.flashcardManager.getNextId(this.flashcards),
+      ...this.pendingFlashcard,
+    };
+
+    // Save to flashcards.json via API
+    const success = await this.flashcardManager.saveFlashcardToFile(newFlashcard);
+    
+    if (!success) {
+      alert("❌ Gagal menyimpan flashcard ke file.");
+      return;
+    }
+
+    // Add to current flashcards
+    this.flashcards.push(newFlashcard);
+    this.originalOrder.push(newFlashcard);
+
+    // Go to the new flashcard
+    this.currentIndex = this.flashcards.length - 1;
+    this.updateDisplay();
+
+    // Update AI Chat context
+    if (this.aiChat) {
+      this.aiChat.updateContext();
+    }
+
+    // Close modal and show success
+    this.closeAddModal();
+    alert(`✅ Flashcard "${newFlashcard.kanji}" berhasil disimpan ke flashcards.json!`);
+  }
+
+  // Level Filter
+  private bindLevelFilter(): void {
+    const levelFilter = document.getElementById("levelFilter") as HTMLSelectElement;
+    if (levelFilter) {
+      levelFilter.addEventListener("change", (e) => {
+        const target = e.target as HTMLSelectElement;
+        this.currentLevel = target.value;
+        this.filterByLevel(this.currentLevel);
+      });
+    }
+  }
+
+  private filterByLevel(level: string): void {
+    if (level === "ALL") {
+      this.flashcards = [...this.allFlashcards];
+    } else {
+      this.flashcards = this.allFlashcards.filter(f => f.level === level);
+    }
+    this.originalOrder = [...this.flashcards];
+    this.currentIndex = 0;
+    this.isFlipped = false;
+    this.isShuffled = false;
+    this.updateDisplay();
+    this.changeCard();
+  }
+
+  // Quiz Events
+  private bindQuizEvents(): void {
+    const quizBtn = document.getElementById("quizBtn");
+    const quizModal = document.getElementById("quizModal");
+    const closeQuizModal = document.getElementById("closeQuizModal");
+    const startQuizBtn = document.getElementById("startQuizBtn");
+    const nextQuestionBtn = document.getElementById("nextQuestionBtn");
+    const restartQuizBtn = document.getElementById("restartQuizBtn");
+
+    // Open quiz modal
+    quizBtn?.addEventListener("click", () => {
+      quizModal?.classList.add("open");
+      this.resetQuizUI();
+    });
+
+    // Close quiz modal
+    closeQuizModal?.addEventListener("click", () => {
+      quizModal?.classList.remove("open");
+      this.quiz?.endQuiz();
+    });
+
+    // Close on overlay click
+    quizModal?.addEventListener("click", (e) => {
+      if (e.target === quizModal) {
+        quizModal.classList.remove("open");
+        this.quiz?.endQuiz();
+      }
+    });
+
+    // Level selection
+    document.querySelectorAll(".quiz-level-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        document.querySelectorAll(".quiz-level-btn").forEach(b => b.classList.remove("active"));
+        (e.target as HTMLElement).classList.add("active");
+        this.selectedQuizLevel = (e.target as HTMLElement).dataset.level as QuizLevel;
+      });
+    });
+
+    // Count selection
+    document.querySelectorAll(".quiz-count-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        document.querySelectorAll(".quiz-count-btn").forEach(b => b.classList.remove("active"));
+        (e.target as HTMLElement).classList.add("active");
+        this.selectedQuizCount = parseInt((e.target as HTMLElement).dataset.count || "20");
+      });
+    });
+
+    // Mode selection
+    document.querySelectorAll(".quiz-mode-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        document.querySelectorAll(".quiz-mode-btn").forEach(b => b.classList.remove("active"));
+        (e.target as HTMLElement).classList.add("active");
+        this.selectedQuizMode = (e.target as HTMLElement).dataset.mode as QuizMode;
+      });
+    });
+
+    // Start quiz
+    startQuizBtn?.addEventListener("click", () => {
+      this.startQuiz();
+    });
+
+    // Next question
+    nextQuestionBtn?.addEventListener("click", () => {
+      this.showNextQuestion();
+    });
+
+    // Restart quiz
+    restartQuizBtn?.addEventListener("click", () => {
+      this.resetQuizUI();
+    });
+  }
+
+  private resetQuizUI(): void {
+    const quizSetup = document.getElementById("quizSetup");
+    const quizQuestion = document.getElementById("quizQuestion");
+    const quizResults = document.getElementById("quizResults");
+
+    quizSetup!.style.display = "block";
+    quizQuestion!.style.display = "none";
+    quizResults!.style.display = "none";
+  }
+
+  private startQuiz(): void {
+    if (!this.quiz) return;
+
+    const question = this.quiz.startQuiz(this.selectedQuizLevel, this.selectedQuizCount, this.selectedQuizMode);
+    if (!question) {
+      alert("Tidak cukup flashcard untuk kuis ini!");
+      return;
+    }
+
+    const quizSetup = document.getElementById("quizSetup");
+    const quizQuestion = document.getElementById("quizQuestion");
+
+    quizSetup!.style.display = "none";
+    quizQuestion!.style.display = "block";
+
+    this.displayQuestion(question);
+  }
+
+  private displayQuestion(question: QuizQuestion): void {
+    const quizKanji = document.getElementById("quizKanji");
+    const quizFurigana = document.getElementById("quizFurigana");
+    const quizOptions = document.getElementById("quizOptions");
+    const quizProgressText = document.getElementById("quizProgressText");
+    const quizScoreText = document.getElementById("quizScoreText");
+    const quizProgressBar = document.getElementById("quizProgressBar");
+    const nextQuestionBtn = document.getElementById("nextQuestionBtn");
+    const quizRomajiHint = document.getElementById("quizRomajiHint");
+    const quizMeaningFeedback = document.getElementById("quizMeaningFeedback");
+
+    const progress = this.quiz!.getProgress();
+
+    quizKanji!.textContent = question.flashcard.kanji;
+    
+    // Reset meaning feedback
+    quizMeaningFeedback!.style.display = 'none';
+    quizMeaningFeedback!.textContent = '';
+    
+    // Show/hide furigana based on mode
+    // For reading mode, hide furigana since that's what user needs to guess
+    if (question.mode === 'reading') {
+      quizFurigana!.textContent = '???';
+      quizFurigana!.style.color = 'var(--text-secondary)';
+      // Show romaji hint container for reading mode
+      quizRomajiHint!.style.display = 'block';
+    } else {
+      quizFurigana!.textContent = question.flashcard.furigana;
+      quizFurigana!.style.color = '';
+      // Hide romaji hint container for meaning mode
+      quizRomajiHint!.style.display = 'none';
+    }
+    
+    quizProgressText!.textContent = `${progress.current} / ${progress.total}`;
+    quizScoreText!.textContent = `Skor: ${progress.score}`;
+    quizProgressBar!.style.width = `${(progress.current / progress.total) * 100}%`;
+    nextQuestionBtn!.style.display = "none";
+
+    // Reset romaji toggle state
+    const romajiToggleBtn = document.getElementById("romajiToggleBtn");
+    romajiToggleBtn!.textContent = "💡 Tampilkan Romaji";
+    // We'll use a data attribute to track state since we removed the text element
+    romajiToggleBtn!.dataset.visible = "false";
+
+    // Clear and add options
+    quizOptions!.innerHTML = "";
+    const showRomaji = question.mode === 'reading' && question.optionsRomaji;
+    
+    question.options.forEach((option, index) => {
+      const btn = document.createElement("button");
+      btn.className = "quiz-option-btn";
+      
+      if (showRomaji && question.optionsRomaji) {
+        // Create option with furigana and romaji (hidden initially)
+        btn.innerHTML = `
+          <span class="option-furigana">${option}</span>
+          <span class="option-romaji" style="display: none;">(${question.optionsRomaji[index]})</span>
+        `;
+      } else {
+        btn.textContent = option;
+      }
+      
+      btn.addEventListener("click", () => this.handleAnswer(index, question.correctIndex));
+      quizOptions!.appendChild(btn);
+    });
+
+    // Bind romaji toggle for reading mode
+    if (question.mode === 'reading') {
+      romajiToggleBtn!.onclick = () => {
+        const isCurrentlyVisible = romajiToggleBtn!.dataset.visible === "true";
+        const newState = !isCurrentlyVisible;
+        
+        romajiToggleBtn!.dataset.visible = newState ? "true" : "false";
+        romajiToggleBtn!.textContent = newState ? "🔒 Sembunyikan Romaji" : "💡 Tampilkan Romaji";
+        
+        // Toggle romaji on all options
+        document.querySelectorAll(".option-romaji").forEach(el => {
+          (el as HTMLElement).style.display = newState ? "inline" : "none";
+        });
+      };
+    }
+  }
+
+  private handleAnswer(selectedIndex: number, correctIndex: number): void {
+    const quizOptions = document.getElementById("quizOptions");
+    const nextQuestionBtn = document.getElementById("nextQuestionBtn");
+    const quizMeaningFeedback = document.getElementById("quizMeaningFeedback");
+    const buttons = quizOptions!.querySelectorAll(".quiz-option-btn");
+
+    // Disable all buttons
+    buttons.forEach(btn => btn.classList.add("disabled"));
+
+    // Show correct/wrong
+    buttons[correctIndex].classList.add("correct");
+    if (selectedIndex !== correctIndex) {
+      buttons[selectedIndex].classList.add("wrong");
+    }
+
+    // Check answer
+    this.quiz!.checkAnswer(selectedIndex);
+    
+    // Show meaning feedback for reading mode
+    const currentQuestion = this.quiz!.getCurrentQuestion();
+    if (currentQuestion && currentQuestion.mode === 'reading') {
+      const meaning = currentQuestion.flashcard.meaning_id || currentQuestion.flashcard.meaning;
+      quizMeaningFeedback!.textContent = `Arti: ${meaning}`;
+      quizMeaningFeedback!.style.display = 'block';
+    }
+
+    // Show next button or results
+    if (this.quiz!.isFinished()) {
+      setTimeout(() => this.showResults(), 2000); // Increased delay to read feedback
+    } else {
+      nextQuestionBtn!.style.display = "block";
+    }
+  }
+
+  private showNextQuestion(): void {
+    const question = this.quiz!.nextQuestion();
+    if (question) {
+      this.displayQuestion(question);
+    } else {
+      this.showResults();
+    }
+  }
+
+  private showResults(): void {
+    const quizQuestion = document.getElementById("quizQuestion");
+    const quizResults = document.getElementById("quizResults");
+    const scoreNumber = document.getElementById("scoreNumber");
+    const correctCount = document.getElementById("correctCount");
+    const wrongCount = document.getElementById("wrongCount");
+
+    const results = this.quiz!.getResults();
+
+    quizQuestion!.style.display = "none";
+    quizResults!.style.display = "block";
+
+    scoreNumber!.textContent = results.percentage.toString();
+    correctCount!.textContent = results.correct.toString();
+    wrongCount!.textContent = results.wrong.toString();
   }
 }
 

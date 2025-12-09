@@ -32,6 +32,12 @@
         <h1>日本語 Flashcard</h1>
       </div>
       <div class="header-stats">
+        <select class="level-filter" id="levelFilter">
+          <option value="ALL">Semua Level</option>
+          <option value="N5">JLPT N5</option>
+          <option value="N4">JLPT N4</option>
+          <option value="N3">JLPT N3</option>
+        </select>
         <span class="stat-badge" id="progressBadge">1 / 30</span>
       </div>
     </header>
@@ -130,6 +136,171 @@
     <footer class="footer">
       <p>🎌 Belajar Kanji dengan mudah dan menyenangkan</p>
     </footer>
+  </div>
+
+  <!-- Add Flashcard Button -->
+  <button class="add-flashcard-btn" id="addFlashcardBtn" title="Tambah Flashcard">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+  </button>
+
+  <!-- Quiz Button -->
+  <button class="quiz-btn" id="quizBtn" title="Kuis Vocabulary">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </svg>
+  </button>
+
+  <!-- Add Flashcard Modal -->
+  <div class="modal-overlay" id="addFlashcardModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>➕ Tambah Flashcard Baru</h2>
+        <button class="modal-close-btn" id="modalCloseBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group">
+          <label for="kanjiInput">Masukkan Kanji / Kata</label>
+          <input type="text" id="kanjiInput" class="kanji-input" placeholder="日本語" />
+          <small>Contoh: 勉強, 食べる, 日本語</small>
+        </div>
+        <button class="generate-btn" id="generateBtn">
+          <span class="btn-text">🤖 Generate dengan AI</span>
+          <span class="btn-loading" style="display: none;">
+            <span class="loading-spinner"></span>
+            Generating...
+          </span>
+        </button>
+
+        <!-- Preview Section -->
+        <div class="preview-section" id="previewSection" style="display: none;">
+          <h3>📝 Preview Flashcard</h3>
+          <div class="preview-card">
+            <div class="preview-row">
+              <span class="preview-label">Kanji:</span>
+              <span class="preview-value" id="previewKanji">-</span>
+            </div>
+            <div class="preview-row">
+              <span class="preview-label">Furigana:</span>
+              <span class="preview-value" id="previewFurigana">-</span>
+            </div>
+            <div class="preview-row">
+              <span class="preview-label">Romaji:</span>
+              <span class="preview-value" id="previewRomaji">-</span>
+            </div>
+            <div class="preview-row">
+              <span class="preview-label">Meaning (EN):</span>
+              <span class="preview-value" id="previewMeaning">-</span>
+            </div>
+            <div class="preview-row">
+              <span class="preview-label">Arti (ID):</span>
+              <span class="preview-value" id="previewMeaningId">-</span>
+            </div>
+          </div>
+          <button class="save-btn" id="saveFlashcardBtn">💾 Simpan Flashcard</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quiz Modal -->
+  <div class="modal-overlay" id="quizModal">
+    <div class="modal-content quiz-modal">
+      <button class="modal-close" id="closeQuizModal">×</button>
+      <h2>🎯 Kuis Vocabulary</h2>
+
+      <!-- Quiz Setup -->
+      <div id="quizSetup">
+        <div class="quiz-option-group">
+          <label>Mode Kuis:</label>
+          <div class="quiz-mode-options">
+            <button class="quiz-mode-btn active" data-mode="meaning">📝 Tebak Arti</button>
+            <button class="quiz-mode-btn" data-mode="reading">🔤 Tebak Bacaan</button>
+          </div>
+        </div>
+        <div class="quiz-option-group">
+          <label>Pilih Level JLPT:</label>
+          <div class="quiz-level-options">
+            <button class="quiz-level-btn active" data-level="ALL">Semua</button>
+            <button class="quiz-level-btn" data-level="N5">N5</button>
+            <button class="quiz-level-btn" data-level="N4">N4</button>
+            <button class="quiz-level-btn" data-level="N3">N3</button>
+          </div>
+        </div>
+        <div class="quiz-option-group">
+          <label>Jumlah Soal:</label>
+          <div class="quiz-count-options">
+            <button class="quiz-count-btn" data-count="10">10</button>
+            <button class="quiz-count-btn active" data-count="20">20</button>
+            <button class="quiz-count-btn" data-count="50">50</button>
+            <button class="quiz-count-btn" data-count="0">Semua</button>
+          </div>
+        </div>
+        <button class="start-quiz-btn" id="startQuizBtn">🚀 Mulai Kuis</button>
+      </div>
+
+      <!-- Quiz Question -->
+      <div id="quizQuestion" style="display: none;">
+        <div class="quiz-progress">
+          <span id="quizProgressText">1 / 20</span>
+          <span id="quizScoreText">Skor: 0</span>
+        </div>
+        <div class="quiz-progress-bar">
+          <div class="quiz-progress-fill" id="quizProgressBar"></div>
+        </div>
+        <div class="quiz-card">
+          <div class="quiz-kanji" id="quizKanji">日本語</div>
+          <div class="quiz-furigana" id="quizFurigana">にほんご</div>
+          <div class="quiz-romaji-hint" id="quizRomajiHint" style="display: none;">
+            <button class="romaji-toggle-btn" id="romajiToggleBtn">💡 Tampilkan Romaji</button>
+          </div>
+          <div class="quiz-meaning-feedback" id="quizMeaningFeedback" style="display: none;"></div>
+        </div>
+        <div class="quiz-options" id="quizOptions">
+          <button class="quiz-option-btn">Option 1</button>
+          <button class="quiz-option-btn">Option 2</button>
+          <button class="quiz-option-btn">Option 3</button>
+          <button class="quiz-option-btn">Option 4</button>
+        </div>
+        <button class="next-question-btn" id="nextQuestionBtn" style="display: none;">Soal Berikutnya →</button>
+      </div>
+
+      <!-- Quiz Results -->
+      <div id="quizResults" style="display: none;">
+        <div class="results-header">
+          <h3>🎉 Kuis Selesai!</h3>
+        </div>
+        <div class="results-score">
+          <div class="score-circle" id="scoreCircle">
+            <span class="score-number" id="scoreNumber">85</span>
+            <span class="score-percent">%</span>
+          </div>
+        </div>
+        <div class="results-stats">
+          <div class="stat-item correct">
+            <span class="stat-value" id="correctCount">17</span>
+            <span class="stat-label">Benar</span>
+          </div>
+          <div class="stat-item wrong">
+            <span class="stat-value" id="wrongCount">3</span>
+            <span class="stat-label">Salah</span>
+          </div>
+        </div>
+        <button class="restart-quiz-btn" id="restartQuizBtn">🔄 Kuis Lagi</button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="/src/main.ts"></script>
