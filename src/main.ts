@@ -524,13 +524,13 @@ class FlashcardApp {
       this.quiz?.endQuiz();
     });
 
-    // Close on overlay click
-    quizModal?.addEventListener("click", (e) => {
-      if (e.target === quizModal) {
-        quizModal.classList.remove("open");
-        this.quiz?.endQuiz();
-      }
-    });
+    // Close on overlay click - DISABLED as per user request
+    // quizModal?.addEventListener("click", (e) => {
+    //   if (e.target === quizModal) {
+    //     quizModal.classList.remove("open");
+    //     this.quiz?.endQuiz();
+    //   }
+    // });
 
     // Level selection
     document.querySelectorAll(".quiz-level-btn").forEach(btn => {

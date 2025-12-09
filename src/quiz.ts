@@ -60,12 +60,36 @@ export class Quiz {
     // Shuffle flashcards
     const shuffled = this.shuffleArray([...this.filteredFlashcards]);
     
-    // If questionCount is 0, use all flashcards, otherwise use specified count
-    const actualCount = questionCount === 0 ? shuffled.length : Math.min(questionCount, shuffled.length);
-    const selectedCards = shuffled.slice(0, actualCount);
+    // Ensure uniqueness based on ID (extra safety)
+    const uniqueCards: Flashcard[] = [];
+    const seenIds = new Set<number>();
+    
+    for (const card of shuffled) {
+      if (!seenIds.has(card.id)) {
+        seenIds.add(card.id);
+        uniqueCards.push(card);
+      }
+    }
+    
+    // If questionCount is 0, use all unique flashcards, otherwise use specified count
+    const actualCount = questionCount === 0 ? uniqueCards.length : Math.min(questionCount, uniqueCards.length);
+    const selectedCards = uniqueCards.slice(0, actualCount);
 
     // Generate questions (each flashcard used only once since we're slicing unique items)
     this.questions = selectedCards.map(card => this.generateQuestion(card));
+    
+    // FINAL SAFETY CHECK: Remove any duplicates that might have slipped through (paranoid mode)
+    const finalQuestions: QuizQuestion[] = [];
+    const finalSeenIds = new Set<number>();
+    
+    for (const q of this.questions) {
+      if (!finalSeenIds.has(q.flashcard.id)) {
+        finalSeenIds.add(q.flashcard.id);
+        finalQuestions.push(q);
+      }
+    }
+    this.questions = finalQuestions;
+
     this.currentQuestionIndex = 0;
     this.score = 0;
     this.answers = [];
@@ -78,22 +102,43 @@ export class Quiz {
    * Generate a question with 4 options based on current mode
    */
   private generateQuestion(flashcard: Flashcard): QuizQuestion {
-    // Get 3 random wrong answers from other flashcards
-    const otherCards = this.filteredFlashcards.filter(f => f.id !== flashcard.id);
-    const shuffledOthers = this.shuffleArray(otherCards).slice(0, 3);
+    // Get 3 random wrong answers that are unique strings and not equal to correct answer
+    const currentAnswer = this.currentMode === 'meaning' 
+      ? (flashcard.meaning_id || flashcard.meaning) 
+      : flashcard.furigana;
+
+    const uniqueDistractors: Flashcard[] = [];
+    const seenAnswers = new Set<string>();
+    seenAnswers.add(currentAnswer);
+
+    // Filter potential distractors
+    const potentialDistractors = this.filteredFlashcards.filter(f => f.id !== flashcard.id);
+    const shuffledPotentials = this.shuffleArray([...potentialDistractors]); // Copy to avoid mutating original filter result if it was a ref
+
+    for (const card of shuffledPotentials) {
+      const answer = this.currentMode === 'meaning' 
+        ? (card.meaning_id || card.meaning) 
+        : card.furigana;
+
+      if (!seenAnswers.has(answer)) {
+        seenAnswers.add(answer);
+        uniqueDistractors.push(card);
+      }
+      
+      if (uniqueDistractors.length >= 3) break;
+    }
     
+    // If we didn't find enough unique distractors (unlikely unless dataset is tiny), pad with any (should not happen with >4 cards)
+    const finalDistractors = uniqueDistractors; 
+
     let wrongOptions: string[];
-    let correctAnswer: string;
+    let correctAnswer = currentAnswer;
     let optionsRomaji: string[] | undefined;
     
     if (this.currentMode === 'meaning') {
-      // Mode: Tebak Arti - show kanji, guess meaning
-      wrongOptions = shuffledOthers.map(f => f.meaning_id || f.meaning);
-      correctAnswer = flashcard.meaning_id || flashcard.meaning;
+      wrongOptions = finalDistractors.map(f => f.meaning_id || f.meaning);
     } else {
-      // Mode: Tebak Bacaan - show kanji, guess furigana
-      wrongOptions = shuffledOthers.map(f => f.furigana);
-      correctAnswer = flashcard.furigana;
+      wrongOptions = finalDistractors.map(f => f.furigana);
     }
 
     // Combine options (before shuffling, for romaji mapping)
@@ -101,7 +146,7 @@ export class Quiz {
     
     // For reading mode, prepare romaji for each option
     if (this.currentMode === 'reading') {
-      const wrongRomaji = shuffledOthers.map(f => f.romaji);
+      const wrongRomaji = finalDistractors.map(f => f.romaji);
       const allRomaji = [...wrongRomaji, flashcard.romaji];
       
       // Create paired array for shuffling together
