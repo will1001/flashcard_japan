@@ -26585,6 +26585,96 @@
       "meaning": "for proposal use",
       "meaning_id": "untuk penggunaan usulan",
       "level": "N3"
+    },
+    {
+      "id": 2954,
+      "kanji": "黒い",
+      "furigana": "くろい",
+      "romaji": "kuroi",
+      "meaning": "black (adjective)",
+      "meaning_id": "hitam (kata sifat)",
+      "level": "My Level"
+    },
+    {
+      "id": 2955,
+      "kanji": "白い",
+      "furigana": "しろい",
+      "romaji": "shiroi",
+      "meaning": "white (adjective)",
+      "meaning_id": "putih (kata sifat)",
+      "level": "My Level"
+    },
+    {
+      "id": 2956,
+      "kanji": "赤い",
+      "furigana": "あかい",
+      "romaji": "akai",
+      "meaning": "red (adjective)",
+      "meaning_id": "merah (kata sifat)",
+      "level": "My Level"
+    },
+    {
+      "id": 2957,
+      "kanji": "青い",
+      "furigana": "あおい",
+      "romaji": "aoi",
+      "meaning": "blue (adjective)",
+      "meaning_id": "biru (kata sifat)",
+      "level": "My Level"
+    },
+    {
+      "id": 2958,
+      "kanji": "新しい",
+      "furigana": "あたらしい",
+      "romaji": "atarashii",
+      "meaning": "new",
+      "meaning_id": "baru",
+      "level": "My Level"
+    },
+    {
+      "id": 2959,
+      "kanji": "古い",
+      "furigana": "ふるい",
+      "romaji": "furui",
+      "meaning": "old (thing)",
+      "meaning_id": "lama (benda)",
+      "level": "My Level"
+    },
+    {
+      "id": 2960,
+      "kanji": "高い",
+      "furigana": "たかい",
+      "romaji": "takai",
+      "meaning": "expensive / tall",
+      "meaning_id": "mahal / tinggi",
+      "level": "My Level"
+    },
+    {
+      "id": 2961,
+      "kanji": "安い",
+      "furigana": "やすい",
+      "romaji": "yasui",
+      "meaning": "cheap",
+      "meaning_id": "murah",
+      "level": "My Level"
+    },
+    {
+      "id": 2962,
+      "kanji": "大きい",
+      "furigana": "おおきい",
+      "romaji": "ookii",
+      "meaning": "big",
+      "meaning_id": "besar",
+      "level": "My Level"
+    },
+    {
+      "id": 2963,
+      "kanji": "小さい",
+      "furigana": "ちいさい",
+      "romaji": "chiisai",
+      "meaning": "small",
+      "meaning_id": "kecil",
+      "level": "My Level"
     }
   ]
 }

@@ -1,7 +1,7 @@
-import type { Flashcard } from './types';
+import type { Flashcard } from "./types";
 
-export type QuizLevel = 'N5' | 'N4' | 'N3' | 'ALL';
-export type QuizMode = 'meaning' | 'reading';
+export type QuizLevel = "N5" | "N4" | "N3" | "My Level" | "ALL";
+export type QuizMode = "meaning" | "reading";
 
 export interface QuizQuestion {
   flashcard: Flashcard;
@@ -29,9 +29,13 @@ export class Quiz {
   private questions: QuizQuestion[] = [];
   private currentQuestionIndex: number = 0;
   private score: number = 0;
-  private answers: { question: QuizQuestion; selectedIndex: number; isCorrect: boolean }[] = [];
+  private answers: {
+    question: QuizQuestion;
+    selectedIndex: number;
+    isCorrect: boolean;
+  }[] = [];
   private isActive: boolean = false;
-  private currentMode: QuizMode = 'meaning';
+  private currentMode: QuizMode = "meaning";
 
   constructor(flashcards: Flashcard[]) {
     this.flashcards = flashcards;
@@ -42,46 +46,67 @@ export class Quiz {
    * questionCount = 0 means all available flashcards
    * mode = 'meaning' for guessing meaning, 'reading' for guessing furigana
    */
-  startQuiz(level: QuizLevel, questionCount: number, mode: QuizMode = 'meaning'): QuizQuestion | null {
+  startQuiz(
+    level: QuizLevel,
+    questionCount: number,
+    mode: QuizMode = "meaning",
+  ): QuizQuestion | null {
     this.currentMode = mode;
-    
+
     // Filter flashcards by level
-    if (level === 'ALL') {
+    if (level === "ALL") {
       this.filteredFlashcards = [...this.flashcards];
     } else {
-      this.filteredFlashcards = this.flashcards.filter(f => f.level === level);
+      this.filteredFlashcards = this.flashcards.filter(
+        (f) => f.level === level,
+      );
     }
 
+    console.log(`[Quiz] Level selected: ${level}, Mode: ${mode}`);
+    console.log(`[Quiz] Total flashcards: ${this.flashcards.length}`);
+    console.log(
+      `[Quiz] Filtered flashcards: ${this.filteredFlashcards.length}`,
+    );
+    console.log(
+      `[Quiz] Sample cards:`,
+      this.filteredFlashcards
+        .slice(0, 5)
+        .map((f) => ({ id: f.id, kanji: f.kanji, level: f.level })),
+    );
+
     if (this.filteredFlashcards.length < 4) {
-      console.error('Not enough flashcards for quiz');
+      console.error("Not enough flashcards for quiz");
       return null;
     }
 
     // Shuffle flashcards
     const shuffled = this.shuffleArray([...this.filteredFlashcards]);
-    
+
     // Ensure uniqueness based on ID (extra safety)
     const uniqueCards: Flashcard[] = [];
     const seenIds = new Set<number>();
-    
+
     for (const card of shuffled) {
       if (!seenIds.has(card.id)) {
         seenIds.add(card.id);
         uniqueCards.push(card);
       }
     }
-    
+
     // If questionCount is 0, use all unique flashcards, otherwise use specified count
-    const actualCount = questionCount === 0 ? uniqueCards.length : Math.min(questionCount, uniqueCards.length);
+    const actualCount =
+      questionCount === 0
+        ? uniqueCards.length
+        : Math.min(questionCount, uniqueCards.length);
     const selectedCards = uniqueCards.slice(0, actualCount);
 
     // Generate questions (each flashcard used only once since we're slicing unique items)
-    this.questions = selectedCards.map(card => this.generateQuestion(card));
-    
+    this.questions = selectedCards.map((card) => this.generateQuestion(card));
+
     // FINAL SAFETY CHECK: Remove any duplicates that might have slipped through (paranoid mode)
     const finalQuestions: QuizQuestion[] = [];
     const finalSeenIds = new Set<number>();
-    
+
     for (const q of this.questions) {
       if (!finalSeenIds.has(q.flashcard.id)) {
         finalSeenIds.add(q.flashcard.id);
@@ -103,59 +128,73 @@ export class Quiz {
    */
   private generateQuestion(flashcard: Flashcard): QuizQuestion {
     // Get 3 random wrong answers that are unique strings and not equal to correct answer
-    const currentAnswer = this.currentMode === 'meaning' 
-      ? (flashcard.meaning_id || flashcard.meaning) 
-      : flashcard.furigana;
+    const currentAnswer =
+      this.currentMode === "meaning"
+        ? flashcard.meaning_id || flashcard.meaning
+        : flashcard.furigana;
+
+    console.log(
+      `[Quiz] Generating question for: ${flashcard.kanji} (${flashcard.level}) - Answer: ${currentAnswer}`,
+    );
 
     const uniqueDistractors: Flashcard[] = [];
     const seenAnswers = new Set<string>();
     seenAnswers.add(currentAnswer);
 
     // Filter potential distractors
-    const potentialDistractors = this.filteredFlashcards.filter(f => f.id !== flashcard.id);
+    const potentialDistractors = this.filteredFlashcards.filter(
+      (f) => f.id !== flashcard.id,
+    );
     const shuffledPotentials = this.shuffleArray([...potentialDistractors]); // Copy to avoid mutating original filter result if it was a ref
 
     for (const card of shuffledPotentials) {
-      const answer = this.currentMode === 'meaning' 
-        ? (card.meaning_id || card.meaning) 
-        : card.furigana;
+      const answer =
+        this.currentMode === "meaning"
+          ? card.meaning_id || card.meaning
+          : card.furigana;
 
       if (!seenAnswers.has(answer)) {
         seenAnswers.add(answer);
         uniqueDistractors.push(card);
+        console.log(
+          `[Quiz] Added distractor: ${card.kanji} (${card.level}) - ${answer}`,
+        );
       }
-      
+
       if (uniqueDistractors.length >= 3) break;
     }
-    
+
     // If we didn't find enough unique distractors (unlikely unless dataset is tiny), pad with any (should not happen with >4 cards)
-    const finalDistractors = uniqueDistractors; 
+    const finalDistractors = uniqueDistractors;
 
     let wrongOptions: string[];
     let correctAnswer = currentAnswer;
     let optionsRomaji: string[] | undefined;
-    
-    if (this.currentMode === 'meaning') {
-      wrongOptions = finalDistractors.map(f => f.meaning_id || f.meaning);
+
+    if (this.currentMode === "meaning") {
+      wrongOptions = finalDistractors.map((f) => f.meaning_id || f.meaning);
     } else {
-      wrongOptions = finalDistractors.map(f => f.furigana);
+      wrongOptions = finalDistractors.map((f) => f.furigana);
     }
 
     // Combine options (before shuffling, for romaji mapping)
     const allOptions = [...wrongOptions, correctAnswer];
-    
+
     // For reading mode, prepare romaji for each option
-    if (this.currentMode === 'reading') {
-      const wrongRomaji = finalDistractors.map(f => f.romaji);
+    if (this.currentMode === "reading") {
+      const wrongRomaji = finalDistractors.map((f) => f.romaji);
       const allRomaji = [...wrongRomaji, flashcard.romaji];
-      
+
       // Create paired array for shuffling together
-      const paired = allOptions.map((opt, i) => ({ option: opt, romaji: allRomaji[i] }));
+      const paired = allOptions.map((opt, i) => ({
+        option: opt,
+        romaji: allRomaji[i],
+      }));
       const shuffledPaired = this.shuffleArray(paired);
-      
-      const shuffledOptions = shuffledPaired.map(p => p.option);
-      optionsRomaji = shuffledPaired.map(p => p.romaji);
-      
+
+      const shuffledOptions = shuffledPaired.map((p) => p.option);
+      optionsRomaji = shuffledPaired.map((p) => p.romaji);
+
       return {
         flashcard,
         options: shuffledOptions,
@@ -164,7 +203,7 @@ export class Quiz {
         mode: this.currentMode,
       };
     }
-    
+
     // For meaning mode, just shuffle options
     const shuffledOptions = this.shuffleArray(allOptions);
 
